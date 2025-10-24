@@ -326,14 +326,14 @@ zoomerToBoomerBtn.addEventListener('click', () => {
 // Функция перевода через AI (Anthropic Claude)
 async function translateWithAI(text, mode) {
     const systemPrompt = mode === 'boomerToZoomer' 
-        ? `Ты - переводчик с "бумерского" языка на "зумерский" сленг. 
-           Переводи формальные, старомодные фразы на современный молодёжный сленг Gen Z.
-           Используй эмодзи, сокращения (спс, бб, го, чилл, кринж, топ, вайб и т.д.).
-           Будь креативным и естественным. Переводи ТОЛЬКО текст, без объяснений.`
-        : `Ты - переводчик с "зумерского" сленга на "бумерский" формальный язык.
-           Переводи молодёжный сленг на формальный, правильный русский язык.
-           Убирай сокращения, сленг, эмодзи. Делай текст вежливым и формальным.
-           Переводи ТОЛЬКО текст, без объяснений.`;
+        ? `Ты - переводчик с "бумерского" языка на "зумерский" сленг. Переводи формальные, старомодные фразы на современный молодёжный сленг Gen Z. Используй эмодзи, сокращения (спс, бб, го, чилл, кринж, топ, вайб и т.д.). Будь креативным и естественным. Переводи ТОЛЬКО текст, без объяснений.`
+        : `Ты - переводчик с "зумерского" сленга на "бумерский" формальный язык. Переводи молодёжный сленг на формальный, правильный русский язык. Убирай сокращения, сленг, эмодзи. Делай текст вежливым и формальным. Переводи ТОЛЬКО текст, без объяснений.`;
+
+    // Проверяем наличие API ключа
+    if (!ANTHROPIC_API_KEY || ANTHROPIC_API_KEY === '') {
+        console.warn('API ключ не настроен, используем словарный перевод');
+        return translateWithDictionary(text, mode);
+    }
 
     try {
         const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -346,15 +346,18 @@ async function translateWithAI(text, mode) {
             body: JSON.stringify({
                 model: 'claude-3-5-sonnet-20241022',
                 max_tokens: 1024,
+                system: systemPrompt,
                 messages: [{
                     role: 'user',
-                    content: `${systemPrompt}\n\nПереведи: "${text}"`
+                    content: `Переведи: "${text}"`
                 }]
             })
         });
 
         if (!response.ok) {
-            throw new Error('AI перевод недоступен');
+            const errorData = await response.json().catch(() => ({}));
+            console.error('Ошибка API:', response.status, errorData);
+            throw new Error(`AI перевод недоступен: ${response.status}`);
         }
 
         const data = await response.json();
@@ -484,8 +487,31 @@ function updateExamples() {
 aiToggle.addEventListener('change', (e) => {
     useAI = e.target.checked;
     console.log('AI режим:', useAI ? 'включён' : 'выключен');
+    updateAIStatus();
 });
+
+// Проверка статуса AI при загрузке
+function updateAIStatus() {
+    const statusDiv = document.getElementById('ai-status');
+    
+    if (!useAI) {
+        statusDiv.textContent = 'Используется словарный перевод';
+        statusDiv.className = 'ai-status warning';
+        return;
+    }
+    
+    if (!ANTHROPIC_API_KEY || ANTHROPIC_API_KEY === '') {
+        statusDiv.textContent = '⚠️ API ключ не настроен. Создайте config.js из config.example.js';
+        statusDiv.className = 'ai-status error';
+        aiToggle.checked = false;
+        useAI = false;
+    } else {
+        statusDiv.textContent = '✅ AI готов к работе';
+        statusDiv.className = 'ai-status success';
+    }
+}
 
 // Инициализация
 updateExamples();
+updateAIStatus();
 
