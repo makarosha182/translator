@@ -278,8 +278,12 @@ Object.entries(translations.boomerToZoomer).forEach(([boomer, zoomer]) => {
     zoomerToBoomer[zoomerClean] = boomer;
 });
 
+// API ключ Anthropic (можно задать через переменную окружения или напрямую)
+const ANTHROPIC_API_KEY = window.ANTHROPIC_API_KEY || '';
+
 // Состояние приложения
 let currentMode = 'boomerToZoomer';
+let useAI = true; // По умолчанию используем AI
 
 // Элементы DOM
 const boomerToZoomerBtn = document.getElementById('boomer-to-zoomer');
@@ -290,6 +294,7 @@ const translateBtn = document.getElementById('translate-btn');
 const inputLabel = document.getElementById('input-label');
 const outputLabel = document.getElementById('output-label');
 const examplesGrid = document.getElementById('examples-grid');
+const aiToggle = document.getElementById('ai-toggle');
 
 // Переключение режима перевода
 boomerToZoomerBtn.addEventListener('click', () => {
@@ -318,8 +323,51 @@ zoomerToBoomerBtn.addEventListener('click', () => {
     updateExamples();
 });
 
-// Функция перевода
-function translate(text, mode) {
+// Функция перевода через AI (Anthropic Claude)
+async function translateWithAI(text, mode) {
+    const systemPrompt = mode === 'boomerToZoomer' 
+        ? `Ты - переводчик с "бумерского" языка на "зумерский" сленг. 
+           Переводи формальные, старомодные фразы на современный молодёжный сленг Gen Z.
+           Используй эмодзи, сокращения (спс, бб, го, чилл, кринж, топ, вайб и т.д.).
+           Будь креативным и естественным. Переводи ТОЛЬКО текст, без объяснений.`
+        : `Ты - переводчик с "зумерского" сленга на "бумерский" формальный язык.
+           Переводи молодёжный сленг на формальный, правильный русский язык.
+           Убирай сокращения, сленг, эмодзи. Делай текст вежливым и формальным.
+           Переводи ТОЛЬКО текст, без объяснений.`;
+
+    try {
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': ANTHROPIC_API_KEY,
+                'anthropic-version': '2023-06-01'
+            },
+            body: JSON.stringify({
+                model: 'claude-3-5-sonnet-20241022',
+                max_tokens: 1024,
+                messages: [{
+                    role: 'user',
+                    content: `${systemPrompt}\n\nПереведи: "${text}"`
+                }]
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('AI перевод недоступен');
+        }
+
+        const data = await response.json();
+        return data.content[0].text.trim();
+    } catch (error) {
+        console.error('Ошибка AI перевода:', error);
+        // Fallback на словарный перевод
+        return translateWithDictionary(text, mode);
+    }
+}
+
+// Функция словарного перевода (старая логика)
+function translateWithDictionary(text, mode) {
     const dict = mode === 'boomerToZoomer' ? translations.boomerToZoomer : zoomerToBoomer;
     
     let result = text.toLowerCase();
@@ -348,8 +396,17 @@ function translate(text, mode) {
     return result;
 }
 
+// Основная функция перевода
+async function translate(text, mode) {
+    if (useAI) {
+        return await translateWithAI(text, mode);
+    } else {
+        return translateWithDictionary(text, mode);
+    }
+}
+
 // Обработчик кнопки перевода
-translateBtn.addEventListener('click', () => {
+translateBtn.addEventListener('click', async () => {
     const input = inputText.value.trim();
     
     if (!input) {
@@ -358,9 +415,23 @@ translateBtn.addEventListener('click', () => {
         return;
     }
     
-    const translated = translate(input, currentMode);
-    outputText.textContent = translated;
-    outputText.classList.add('translated');
+    // Показываем индикатор загрузки
+    outputText.textContent = 'Перевожу... 🤖';
+    outputText.classList.remove('translated');
+    translateBtn.disabled = true;
+    translateBtn.textContent = '⏳ Перевожу...';
+    
+    try {
+        const translated = await translate(input, currentMode);
+        outputText.textContent = translated;
+        outputText.classList.add('translated');
+    } catch (error) {
+        outputText.textContent = 'Ошибка перевода. Попробуйте ещё раз! 😔';
+        console.error(error);
+    } finally {
+        translateBtn.disabled = false;
+        translateBtn.textContent = '✨ Перевести';
+    }
 });
 
 // Enter для перевода
@@ -408,6 +479,12 @@ function updateExamples() {
         examplesGrid.appendChild(card);
     });
 }
+
+// Обработчик переключателя AI
+aiToggle.addEventListener('change', (e) => {
+    useAI = e.target.checked;
+    console.log('AI режим:', useAI ? 'включён' : 'выключен');
+});
 
 // Инициализация
 updateExamples();
