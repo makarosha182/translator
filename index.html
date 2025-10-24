@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Переводчик: Бумерский ↔ Зумерский</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔄 Переводчик поколений</h1>
+            <p class="subtitle">Бумерский ↔ Зумерский</p>
+            <p class="subtitle" style="font-size: 0.9em; margin-top: 10px;">Специально для Зиновкиной Анны 💜</p>
+        </header>
+
+        <div class="translator-box">
+            <div class="language-selector">
+                <button class="lang-btn active" id="boomer-to-zoomer">
+                    👴 Бумерский → 🔥 Зумерский
+                </button>
+                <button class="lang-btn" id="zoomer-to-boomer">
+                    🔥 Зумерский → 👴 Бумерский
+                </button>
+            </div>
+
+            <div class="input-section">
+                <div class="input-group">
+                    <label id="input-label">Введите текст на бумерском:</label>
+                    <textarea id="input-text" placeholder="Например: Доброе утро, как дела?"></textarea>
+                </div>
+
+                <button class="translate-btn" id="translate-btn">
+                    ✨ Перевести
+                </button>
+
+                <div class="output-group">
+                    <label id="output-label">Перевод на зумерский:</label>
+                    <div id="output-text" class="output-text">
+                        Результат появится здесь...
+                    </div>
+                </div>
+            </div>
+
+            <div class="examples-section">
+                <h3>📚 Примеры переводов:</h3>
+                <div class="examples-grid" id="examples-grid">
+                    <!-- Примеры будут добавлены через JS -->
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Сделано с 💜 для понимания между поколениями</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
